@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # MTA API Configuration
 MTA_API_KEY = os.environ.get('MTA_API_KEY', 'YOUR_MTA_API_KEY')
