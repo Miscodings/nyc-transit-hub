@@ -2,7 +2,7 @@ app = "nyc-transit-app"
 [build]
 
 [env]
-PORT = "8080"
+PORT = "5000"
 
 [[services]]
 protocol = "tcp"
