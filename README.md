@@ -18,9 +18,7 @@ A comprehensive web application providing real-time updates, schedules, and tran
 - **Framework**: React 18 with Vite
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
-- **HTTP Client**: Axios
 - **Authentication**: Firebase Auth
-- **Routing**: React Router
 
 ### Backend
 - **Framework**: Flask (Python)
@@ -67,35 +65,33 @@ nyc-transit-hub/
 ### Prerequisites
 - Python 3.8+
 - Node.js 18+
-- MTA API Key (get from https://api.mta.info)
 - Firebase project (create at https://console.firebase.google.com)
 
 ### Backend Setup
 
 1. **Navigate to the backend directory**:
-   ```bash
+   ```
    cd backend
    ```
 
 2. **Create a virtual environment**:
-   ```bash
+   ```
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies**:
-   ```bash
+   ```
    pip install -r requirements.txt
    ```
 
 4. **Set up environment variables**:
-   ```bash
+   ```
    cp ../.env.example .env
-   # Edit .env and add your MTA API key
    ```
 
 5. **Run the Flask server**:
-   ```bash
+   ```
    python app.py
    ```
    The backend will be available at `http://localhost:5000`
@@ -103,17 +99,17 @@ nyc-transit-hub/
 ### Frontend Setup
 
 1. **Navigate to the frontend directory**:
-   ```bash
+   ```
    cd frontend
    ```
 
 2. **Install dependencies**:
-   ```bash
+   ```
    npm install
    ```
 
 3. **Set up environment variables**:
-   ```bash
+   ```
    cp ../.env.example .env.local
    # Edit .env.local and add your Firebase credentials
    ```
@@ -202,14 +198,6 @@ CREATE TABLE alerts (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 ```
-
-## MTA API Integration
-
-This application uses the MTA API to fetch real-time transit data. To use the API:
-
-1. Register for an API key at https://api.mta.info
-2. Add the API key to your `.env` file
-3. The backend handles all API calls and caches results to minimize requests
 
 ## Deployment
 
