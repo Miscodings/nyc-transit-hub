@@ -20,6 +20,9 @@ from config import (
 
 mta_bp = Blueprint('mta', __name__)
 
+# Module-level cache so shapes.txt is only parsed once per process lifetime
+_gtfs_cache = {'polylines': None, 'parsed_at': 0}
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -123,7 +126,12 @@ def parse_gtfs_static():
     shapes.txt is purpose-built for route geometry and orders of magnitude smaller
     than stop_times.txt, making it safe to use on free-tier hosts (512 MB RAM).
     stops list is intentionally empty — the frontend uses the hardcoded /api/stations.
+    Result is cached in-process for 24 h so repeated requests don't re-parse.
     """
+    if _gtfs_cache['polylines'] is not None and time.time() - _gtfs_cache['parsed_at'] < GTFS_CACHE_TTL:
+        print("[GTFS] Returning cached polylines")
+        return _gtfs_cache['polylines'], []
+
     zip_path = download_gtfs_static()
     if not zip_path:
         return {}, []
@@ -171,6 +179,8 @@ def parse_gtfs_static():
                 route_polylines[rid] = {'id': rid, 'name': rid, 'coordinates': coords}
 
         print(f"[GTFS] Built {len(route_polylines)} route polylines from shapes.txt")
+        _gtfs_cache['polylines'] = route_polylines
+        _gtfs_cache['parsed_at'] = time.time()
         return route_polylines, []   # empty stops — frontend uses /api/stations
 
     except Exception as e:
