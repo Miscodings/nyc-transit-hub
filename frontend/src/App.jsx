@@ -152,13 +152,13 @@ function LineCard({ service, isFav, onToggleFav, language, isExpanded, onToggleE
 
         {/* Name + status */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-tight truncate" style={{ color: 'var(--text)' }}
-             style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <p className="text-sm font-medium leading-tight truncate"
+             style={{ color: 'var(--text)', fontFamily: "'DM Sans', sans-serif" }}>
             {service.name}
           </p>
           {service.status !== 'good' && messages[0] && (
-            <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}
-               style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-xs truncate mt-0.5"
+               style={{ color: 'var(--text-muted)', fontFamily: "'DM Sans', sans-serif" }}>
               {messages[0].header || messages[0].text}
             </p>
           )}
@@ -243,12 +243,12 @@ function SummaryBar({ serviceStatus, t }) {
       ].map(item => (
         <div key={item.label} className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${item.dot} flex-shrink-0`} />
-          <span className="font-medium tabular-nums" style={{ color: 'var(--text)' }}
-                style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.8rem' }}>
+          <span className="font-medium tabular-nums"
+                style={{ color: 'var(--text)', fontFamily: "'DM Mono', monospace", fontSize: '0.8rem' }}>
             {item.count}
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}
-                style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <span className="text-xs"
+                style={{ color: 'var(--text-muted)', fontFamily: "'DM Sans', sans-serif" }}>
             {item.label}
           </span>
         </div>
@@ -575,12 +575,12 @@ export default function App() {
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={t.searchPlaceholder}
                 className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-all duration-200"
-              style={{
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-input)',
-                color: 'var(--text)',
-              }}
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
+                style={{
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-input)',
+                  color: 'var(--text)',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
               />
             </motion.div>
           )}
