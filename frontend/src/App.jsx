@@ -310,11 +310,19 @@ export default function App() {
   const [expandedAlerts, setExpandedAlerts] = useState(new Set());
   const [menuOpen,       setMenuOpen]       = useState(false);
 
-  const [serviceStatus,  setServiceStatus]  = useState([]);
-  const [stations,       setStations]       = useState([]);
+  // Seed from localStorage cache so refresh never shows an empty dashboard
+  const [serviceStatus,  setServiceStatus]  = useState(() => {
+    try { const c = localStorage.getItem('cache_status'); return c ? JSON.parse(c) : []; } catch { return []; }
+  });
+  const [stations,       setStations]       = useState(() => {
+    try { const c = localStorage.getItem('cache_stations'); return c ? JSON.parse(c) : []; } catch { return []; }
+  });
   const [routePolylines, setRoutePolylines] = useState([]);
   const [favorites,      setFavorites]      = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  // Only show the full loading screen if we have no cached data at all
+  const [loading,        setLoading]        = useState(() => {
+    try { return !localStorage.getItem('cache_status'); } catch { return true; }
+  });
 
   const t = translations[language] || translations.en;
 
@@ -329,16 +337,26 @@ export default function App() {
 
   /* Load MTA data on mount */
   useEffect(() => {
-    Promise.all([
-      ApiService.getServiceStatus().then(r => r.success && setServiceStatus(r.data)).catch(() => {}),
-      ApiService.getStations().then(r => r.success && setStations(r.data)).catch(() => {}),
-      ApiService.getRoutePolylines().then(r => {
-        if (r.success) {
-          setRoutePolylines(r.routes || []);
-          if (r.stops?.length) setStations(r.stops);
-        }
-      }).catch(() => {}),
-    ]).finally(() => setLoading(false));
+    const fetchStatus = ApiService.getServiceStatus().then(r => {
+      if (r.success) {
+        setServiceStatus(r.data);
+        try { localStorage.setItem('cache_status', JSON.stringify(r.data)); } catch {}
+      }
+    }).catch(() => {});
+
+    const fetchStations = ApiService.getStations().then(r => {
+      if (r.success) {
+        setStations(r.data);
+        try { localStorage.setItem('cache_stations', JSON.stringify(r.data)); } catch {}
+      }
+    }).catch(() => {});
+
+    const fetchPolylines = ApiService.getRoutePolylines().then(r => {
+      if (r.success) setRoutePolylines(r.routes || []);
+    }).catch(() => {});
+
+    Promise.all([fetchStatus, fetchStations, fetchPolylines])
+      .finally(() => setLoading(false));
   }, []);
 
   /* Load user favorites when signed in */
