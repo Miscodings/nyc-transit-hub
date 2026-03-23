@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/Downloads/nyc-transit-hub -type f -name .env*)"
+    ]
+  }
+}

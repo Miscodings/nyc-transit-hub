@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nyc-transit-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: MTA_API_KEY
+        sync: false   # set this in the Render dashboard (optional)
+    healthCheckPath: /api/health
+    autoDeploy: true
