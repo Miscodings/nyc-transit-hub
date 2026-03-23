@@ -118,7 +118,12 @@ def download_gtfs_static():
 
 
 def parse_gtfs_static():
-    """Return (route_polylines dict, stops list) from the GTFS static zip."""
+    """Return (route_polylines dict, stops list) using shapes.txt — memory efficient.
+
+    shapes.txt is purpose-built for route geometry and orders of magnitude smaller
+    than stop_times.txt, making it safe to use on free-tier hosts (512 MB RAM).
+    stops list is intentionally empty — the frontend uses the hardcoded /api/stations.
+    """
     zip_path = download_gtfs_static()
     if not zip_path:
         return {}, []
@@ -127,75 +132,46 @@ def parse_gtfs_static():
         with zipfile.ZipFile(zip_path, 'r') as z:
             names = z.namelist()
 
-            def read_csv(name):
+            def stream_csv(name):
+                """Yield rows one at a time — never loads the whole file into RAM."""
                 if name not in names:
-                    return []
-                return list(csv.DictReader(io.StringIO(z.read(name).decode('utf-8'))))
+                    return
+                with z.open(name) as f:
+                    yield from csv.DictReader(io.TextIOWrapper(f, 'utf-8'))
 
-            stops_rows     = read_csv('stops.txt')
-            trips_rows     = read_csv('trips.txt')
-            stop_times_rows = read_csv('stop_times.txt')
+            # 1. trips.txt — pick one shape_id per route_id (first encountered)
+            route_to_shape = {}
+            for r in stream_csv('trips.txt'):
+                rid      = r.get('route_id', '').strip()
+                shape_id = r.get('shape_id', '').strip()
+                if rid and shape_id and rid in ALL_LINES and rid not in route_to_shape:
+                    route_to_shape[rid] = shape_id
 
-        # Build stops map
-        stops = {}
-        for r in stops_rows:
-            sid = r.get('stop_id')
-            if not sid:
-                continue
-            try:
-                lat = float(r.get('stop_lat') or 0)
-                lon = float(r.get('stop_lon') or 0)
-            except ValueError:
-                lat = lon = 0.0
-            stops[sid] = {'stop_id': sid, 'name': r.get('stop_name') or sid,
-                          'lat': lat, 'lon': lon, 'lines': set()}
+            shape_to_route = {s: r for r, s in route_to_shape.items()}
 
-        # trip → route
-        trip_to_route = {r['trip_id']: r['route_id']
-                         for r in trips_rows if r.get('trip_id') and r.get('route_id')}
-
-        # Collect stop sequences per trip
-        trip_stopseq = {}
-        for r in stop_times_rows:
-            tid = r.get('trip_id')
-            sid = r.get('stop_id')
-            if not tid or not sid:
-                continue
-            try:
-                seq = int(r.get('stop_sequence') or 0)
-            except ValueError:
-                seq = 0
-            trip_stopseq.setdefault(tid, []).append((seq, sid))
-
-        # route → list of trip stop lists
-        route_trips = {}
-        for tid, seqs in trip_stopseq.items():
-            rid = trip_to_route.get(tid)
-            if not rid:
-                continue
-            ordered = [s for _, s in sorted(seqs, key=lambda x: x[0])]
-            route_trips.setdefault(rid, []).append(ordered)
-
-        # Best trip = most stops
-        route_polylines = {}
-        for rid, trips in route_trips.items():
-            best = max(trips, key=len)
-            coords, seen = [], set()
-            for sid in best:
-                s = stops.get(sid)
-                if not s or sid in seen:
+            # 2. shapes.txt — collect ordered points for each needed shape
+            shape_points = {}  # shape_id -> list of (sequence, lat, lon)
+            for r in stream_csv('shapes.txt'):
+                sid = r.get('shape_id', '').strip()
+                if sid not in shape_to_route:
                     continue
-                seen.add(sid)
-                coords.append([s['lat'], s['lon']])
-                s['lines'].add(rid)
-            route_polylines[rid] = {'id': rid, 'name': rid, 'coordinates': coords}
+                try:
+                    lat = float(r['shape_pt_lat'])
+                    lon = float(r['shape_pt_lon'])
+                    seq = int(r['shape_pt_sequence'])
+                except (KeyError, ValueError):
+                    continue
+                shape_points.setdefault(sid, []).append((seq, lat, lon))
 
-        stops_list = [
-            {'id': s['stop_id'], 'name': s['name'], 'lat': s['lat'],
-             'lon': s['lon'], 'lines': sorted(s['lines'])}
-            for s in stops.values()
-        ]
-        return route_polylines, stops_list
+            # 3. Build sorted polylines per route
+            route_polylines = {}
+            for shape_id, points in shape_points.items():
+                rid    = shape_to_route[shape_id]
+                coords = [[lat, lon] for _, lat, lon in sorted(points)]
+                route_polylines[rid] = {'id': rid, 'name': rid, 'coordinates': coords}
+
+        print(f"[GTFS] Built {len(route_polylines)} route polylines from shapes.txt")
+        return route_polylines, []   # empty stops — frontend uses /api/stations
 
     except Exception as e:
         import traceback
